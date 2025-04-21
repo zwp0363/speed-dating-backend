@@ -1,4 +1,4 @@
-package com.zwp.usercenter.common;
+package com.zwp.speeddating.common;
 
 /**
  * 错误码

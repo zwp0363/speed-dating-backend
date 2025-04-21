@@ -1,4 +1,4 @@
-package com.zwp.usercenter.model.domain.request;
+package com.zwp.speeddating.model.domain.request;
 
 import lombok.Data;
 

@@ -1,12 +1,12 @@
-package com.zwp.usercenter.service.impl;
+package com.zwp.speeddating.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zwp.usercenter.common.ErrorCode;
-import com.zwp.usercenter.exception.BusinessException;
-import com.zwp.usercenter.model.domain.User;
-import com.zwp.usercenter.service.UserService;
-import com.zwp.usercenter.mapper.UserMapper;
+import com.zwp.speeddating.common.ErrorCode;
+import com.zwp.speeddating.exception.BusinessException;
+import com.zwp.speeddating.model.domain.User;
+import com.zwp.speeddating.service.UserService;
+import com.zwp.speeddating.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.zwp.usercenter.constant.UserConstant.USER_LOGIN_STATE;
+import static com.zwp.speeddating.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户服务实现类

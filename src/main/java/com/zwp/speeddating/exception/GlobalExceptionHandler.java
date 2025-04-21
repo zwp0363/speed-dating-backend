@@ -1,8 +1,8 @@
-package com.zwp.usercenter.exception;
+package com.zwp.speeddating.exception;
 
-import com.zwp.usercenter.common.BaseResponse;
-import com.zwp.usercenter.common.ErrorCode;
-import com.zwp.usercenter.common.ResultUtils;
+import com.zwp.speeddating.common.BaseResponse;
+import com.zwp.speeddating.common.ErrorCode;
+import com.zwp.speeddating.common.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

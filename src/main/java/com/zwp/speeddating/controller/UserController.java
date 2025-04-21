@@ -1,25 +1,24 @@
-package com.zwp.usercenter.controller;
+package com.zwp.speeddating.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.zwp.usercenter.common.BaseResponse;
-import com.zwp.usercenter.common.ErrorCode;
-import com.zwp.usercenter.common.ResultUtils;
-import com.zwp.usercenter.exception.BusinessException;
-import com.zwp.usercenter.model.domain.User;
-import com.zwp.usercenter.model.domain.request.UserLoginRequest;
-import com.zwp.usercenter.model.domain.request.UserRegisterRequest;
-import com.zwp.usercenter.service.UserService;
+import com.zwp.speeddating.common.BaseResponse;
+import com.zwp.speeddating.common.ErrorCode;
+import com.zwp.speeddating.common.ResultUtils;
+import com.zwp.speeddating.exception.BusinessException;
+import com.zwp.speeddating.model.domain.User;
+import com.zwp.speeddating.model.domain.request.UserLoginRequest;
+import com.zwp.speeddating.model.domain.request.UserRegisterRequest;
+import com.zwp.speeddating.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.zwp.usercenter.constant.UserConstant.ADMIN_ROLE;
-import static com.zwp.usercenter.constant.UserConstant.USER_LOGIN_STATE;
+import static com.zwp.speeddating.constant.UserConstant.ADMIN_ROLE;
+import static com.zwp.speeddating.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户接口

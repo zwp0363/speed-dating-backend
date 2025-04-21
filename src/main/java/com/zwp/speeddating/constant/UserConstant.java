@@ -1,4 +1,4 @@
-package com.zwp.usercenter.constant;
+package com.zwp.speeddating.constant;
 
 // 接口中定义的任何字段（变量）都会 隐式地 被声明为 public static final。 这意味着：
 // public: 常量是公开的，可以从任何地方访问。

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: yupao-backend
+    name: speed-dating-backend
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.jdbc.Driver

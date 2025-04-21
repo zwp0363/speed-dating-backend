@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.zwp</groupId>
-    <artifactId>yupao-backend</artifactId>
+    <artifactId>speed-dating-backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>yupao-backend</name>
-    <description>yupao-backend</description>
+    <name>speed-dating-backend</name>
+    <description>speed-dating-backend</description>
     <properties>
         <java.version>1.8</java.version>
         <spring-boot.version>2.6.13</spring-boot.version>

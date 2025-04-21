@@ -1,6 +1,6 @@
-package com.zwp.usercenter.exception;
+package com.zwp.speeddating.exception;
 
-import com.zwp.usercenter.common.ErrorCode;
+import com.zwp.speeddating.common.ErrorCode;
 
 /**
  * 自定义异常类

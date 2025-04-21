@@ -1,6 +1,6 @@
-package com.zwp.usercenter.service;
+package com.zwp.speeddating.service;
 
-import com.zwp.usercenter.model.domain.User;
+import com.zwp.speeddating.model.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;

@@ -1,15 +1,11 @@
-package com.zwp.usercenter;
+package com.zwp.speeddating;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 @SpringBootTest // 默认入口类与启动类名称一致，所以不用指定启动类或加@RunWith(SpringRunner.class)
-class UserCenterApplicationTests {
+class SpeedDatingApplicationTests {
 
     @Test
     void testDigest() {
