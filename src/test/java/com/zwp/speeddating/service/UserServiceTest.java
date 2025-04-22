@@ -1,10 +1,14 @@
 package com.zwp.speeddating.service;
 
 import com.zwp.speeddating.model.domain.User;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 用户服务测试
@@ -61,5 +65,13 @@ class UserServiceTest {
         userAccount = "zhouwupeng";
         result = userService.userRegister(userAccount, userPassword, checkPassword, planetCode);
         Assertions.assertEquals(-1, result);
+    }
+
+    @Test
+    public void testSearchUsersByTags() {
+        List<String> tagNameList = Arrays.asList("Java","大一");
+        List<User> userList = userService.searchUsersByTags(tagNameList);
+        System.out.println(userList);
+        Assert.assertTrue(userList.size() > 0);
     }
 }

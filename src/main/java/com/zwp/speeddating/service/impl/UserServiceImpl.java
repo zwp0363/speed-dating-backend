@@ -2,6 +2,8 @@ package com.zwp.speeddating.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.zwp.speeddating.common.ErrorCode;
 import com.zwp.speeddating.exception.BusinessException;
 import com.zwp.speeddating.model.domain.User;
@@ -11,24 +13,31 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.zwp.speeddating.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户服务实现类
-* @author zwp
-* @description 针对表【user(用户)】的数据库操作Service实现
-* @createDate 2025-02-16 19:48:54
-*/
+ *
+ * @author zwp
+ * @description 针对表【user(用户)】的数据库操作Service实现
+ * @createDate 2025-02-16 19:48:54
+ */
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-    implements UserService{
+        implements UserService {
 
     @Autowired
     private UserMapper userMapper;
@@ -66,7 +75,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         /* Pattern.compile(validPattern): 将 validPattern 字符串编译成一个 Pattern 对象。 Pattern 对象是正则表达式的编译表示形式，用于高效地进行匹配操作。
         .matcher(userAccount): 使用编译后的 Pattern 对象创建一个 Matcher 对象。 Matcher 对象负责在输入的 userAccount 字符串中查找与 Pattern 匹配的子序列*/
         if (matcher.find()) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"不能包含特殊字符");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "不能包含特殊字符");
         }  /* 用于验证 userAccount 字符串是否 不 包含任何特殊字符、符号或空白字符 。 如果 userAccount 不包含 这些字符，则返回 -1。*/
         // 密码和校验密码相同
         if (!userPassword.equals(checkPassword)) {
@@ -151,6 +160,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 用户脱敏
+     *
      * @param originUser
      * @return
      */
@@ -171,11 +181,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         safetyUser.setUserRole(originUser.getUserRole());
         safetyUser.setUserStatus(originUser.getUserStatus());
         safetyUser.setCreateTime(originUser.getCreateTime());
+        safetyUser.setTags(originUser.getTags());
         return safetyUser;
     }
 
     /**
      * 用户注销
+     *
      * @param request
      */
     @Override
@@ -183,6 +195,65 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 移除登录态
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return 1;
+    }
+
+    /**
+     * 根据标签搜索用户（内存过滤版）
+     *
+     * @param tagNameList 用户拥有的标签
+     * @return 用户集合
+     */
+    @Override
+    public List<User> searchUsersByTags(List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 1.先查询所有用户
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        List<User> userList = userMapper.selectList(queryWrapper);
+        Gson gson = new Gson();
+        // 2.在内存中判断是否包含要求的标签
+        return userList.stream()
+                .filter(user -> {
+                    String tagStr = user.getTags(); // 获取用户的标签字符串
+                    if (StringUtils.isBlank(tagStr)) {
+                        return false;
+                    }
+                    // 将标签字符串解析为Set集合
+                    // new TypeToken<Set<String>>() {}.getType(): 这是一个匿名内部类和 TypeToken 的用法，用于在运行时获取泛型类型 Set<String> 的 Type 对象。
+                    // 由于 Java 的类型擦除，直接使用 Set<String>.class 是无法获取到泛型信息的，TypeToken 可以解决这个问题，让 Gson 正确地反序列化为 Set<String> 类型
+                    Set<String> tempTagNameSet = gson.fromJson(tagStr, new TypeToken<Set<String>>() {}.getType());
+                    // 如果 tempTagNameSet 是 null，就把它初始化为一个新的空的 HashSet，否则保持原样,等价if-null
+                    tempTagNameSet = Optional.ofNullable(tempTagNameSet).orElse(new HashSet<>());
+                    for (String tagName : tagNameList) { // 遍历给定的标签名称列表
+                        if (!tempTagNameSet.contains(tagName)) { // 检查用户标签集合中是否包含当前搜索标签
+                            return false; // 如果不包含，过滤掉该用户
+                        }
+                    }
+                    return true; // 如果所有标签都包含，保留该用户
+                })
+                .map(this::getSafetyUser) // 将通过过滤的用户映射为安全用户
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据标签搜索用户（SQL 查询版）
+     * @param tagNameList 用户拥有的标签
+     * @return 用户集合
+     */
+    @Deprecated
+    private List<User> searchUsersByTagsBySQL(List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        // 拼接 and 查询
+        // like '%Java%' and like '%Python%'
+        for (String tagName : tagNameList) {
+            queryWrapper = queryWrapper.like("tags", tagName); //每次like都会自动拼接
+        }
+        List<User> userList = userMapper.selectList(queryWrapper);
+        return userList.stream().map(this::getSafetyUser).collect(Collectors.toList());
     }
 }
 
