@@ -57,6 +57,11 @@ public class User {
     private String email;
 
     /**
+     * 标签列表
+     */
+    private String tags;
+
+    /**
      * 状态 0 - 正常
      */
     private Integer userStatus;
