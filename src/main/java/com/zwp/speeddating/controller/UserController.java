@@ -11,6 +11,7 @@ import com.zwp.speeddating.model.domain.request.UserRegisterRequest;
 import com.zwp.speeddating.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -129,5 +130,19 @@ public class UserController {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
         return  user != null && user.getUserRole() == ADMIN_ROLE;
+    }
+
+    /**
+     * 根据标签搜索用户
+     * @param tagNameList
+     * @return
+     */
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUsersByTags(@RequestParam(required = false) List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        List<User> userList = userService.searchUsersByTags(tagNameList);
+        return ResultUtils.success(userList);
     }
 }
