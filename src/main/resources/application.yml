@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: speed-dating-backend
   # DataSource Config
@@ -10,6 +12,9 @@ spring:
   # session失效时间
   session:
     timeout: 86400
+  mvc:
+    path match:
+      matching-strategy: ant_path_matcher
 server:
   port: 8080
   servlet:
