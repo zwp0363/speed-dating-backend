@@ -1,6 +1,7 @@
 package com.zwp.speeddating.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zwp.speeddating.common.BaseResponse;
 import com.zwp.speeddating.common.ErrorCode;
 import com.zwp.speeddating.common.ResultUtils;
@@ -9,13 +10,17 @@ import com.zwp.speeddating.model.domain.User;
 import com.zwp.speeddating.model.domain.request.UserLoginRequest;
 import com.zwp.speeddating.model.domain.request.UserRegisterRequest;
 import com.zwp.speeddating.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.zwp.speeddating.constant.UserConstant.ADMIN_ROLE;
@@ -29,10 +34,14 @@ import static com.zwp.speeddating.constant.UserConstant.USER_LOGIN_STATE;
 @RestController
 @RequestMapping("/user")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@Slf4j
 public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @PostMapping("/register")
     // @RequestBody 是 Spring MVC 中用于处理 HTTP 请求体的关键注解。它负责将请求体数据转换为 Java 对象，方便 Controller 方法使用
@@ -119,6 +128,31 @@ public class UserController {
         }
         boolean b = userService.removeById(id);// mybatis-plus的逻辑删除，更新为已删除状态
         return ResultUtils.success(b);
+    }
+
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> recommendUsers(long pageSize, long pageNum, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String redisKey = String.format("zwp:user:recommend:%s", loginUser.getId());
+        ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
+        // 如果有缓存，直接读缓存
+        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
+        if (userPage != null) {
+            return ResultUtils.success(userPage);
+        }
+        // 无缓存，查数据库
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        // 偏移量 = (页码 - 1) * 每页条数,定义了从总数据集中的哪一条记录开始查询,配置了MybatisPlus分页插件，会自动处理
+//       Page<User> userList = userService.page(new Page<>((pageNum - 1) * pageSize, pageSize), userQueryWrapper);
+        userPage = userService.page(new Page<>(pageNum, pageSize), userQueryWrapper);
+        // 写缓存
+        try {
+            // 缓存数据30秒自动失效，Redis会将其删除
+            valueOperations.set(redisKey, userPage, 30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis set key error", e);
+        }
+        return ResultUtils.success(userPage);
     }
 
     /**
