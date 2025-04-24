@@ -69,7 +69,7 @@ public class InsertUsersTest {
         // 分100组
         int batchSize = 5000;
         int j = 0; // 初始化计数器j
-        List<CompletableFuture<Void>> futureList = new ArrayList<>(); // 用于存储CompletableFuture对象的 List,即异步批量插入任务的集合
+        List<CompletableFuture<Void>> futureList = new ArrayList<>(); // 用于存放所有的异步任务（CompletableFuture对象），最终汇总这些异步任务
 
         for (int i = 0; i < 100; i++) {
             List<User> userList = new ArrayList<>(); // 为每个并发任务创建一个新的 userList
@@ -88,7 +88,7 @@ public class InsertUsersTest {
                 user.setUserRole(0);
                 user.setPlanetCode("11111111");
                 userList.add(user);
-                if (j % batchSize == 0) {
+                if (j % batchSize == 0) { // 使用计数器 j，当 j 达到批次大小（5000）时，退出循环，代表当前批次用户准备完成
                     break;
                 }
             }
@@ -97,10 +97,11 @@ public class InsertUsersTest {
                 System.out.println("threadName: " + Thread.currentThread().getName()); // 打印线程名称用于调试
                 userService.saveBatch(userList, batchSize); // 调用 userService.saveBatch 批量插入用户批次
             }, executorService); // 使用 executorService (线程池) 执行任务
-            futureList.add(future); // 将 CompletableFuture 添加到 futureList
+            futureList.add(future); // 将每个异步任务 future 保存到 futureList 中，便于之后的任务汇总
         }
-        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[]{})).join(); // 等待所有 CompletableFuture 任务完成
         stopWatch.stop();
+        // CompletableFuture.allOf 用于等待所有异步任务完成。join() 方法会阻塞，直到所有任务完成
+        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[]{})).join();
         System.out.println(stopWatch.getTotalTimeMillis());
     }
 }
