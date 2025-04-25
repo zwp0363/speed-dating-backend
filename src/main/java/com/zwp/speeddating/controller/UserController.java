@@ -7,8 +7,8 @@ import com.zwp.speeddating.common.ErrorCode;
 import com.zwp.speeddating.common.ResultUtils;
 import com.zwp.speeddating.exception.BusinessException;
 import com.zwp.speeddating.model.domain.User;
-import com.zwp.speeddating.model.domain.request.UserLoginRequest;
-import com.zwp.speeddating.model.domain.request.UserRegisterRequest;
+import com.zwp.speeddating.model.request.UserLoginRequest;
+import com.zwp.speeddating.model.request.UserRegisterRequest;
 import com.zwp.speeddating.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.zwp.speeddating.constant.UserConstant.ADMIN_ROLE;
 import static com.zwp.speeddating.constant.UserConstant.USER_LOGIN_STATE;
 
 /**

@@ -1,14 +1,14 @@
-package com.zwp.speeddating.model.domain.request;
+package com.zwp.speeddating.model.request;
 
 import lombok.Data;
 
 import java.io.Serializable;
 
 /**
- *  用户注册请求体
+ *  用户登录请求体
  */
 @Data
-public class UserRegisterRequest implements Serializable {
+public class UserLoginRequest implements Serializable {
     // Java 序列化是一种将 对象的状态 转换为 字节流 的机制。这个字节流可以被保存到文件、通过网络传输，或者存储在数据库中。
     // 反序列化 则是序列化的逆过程，将字节流转换回原始的对象状态。
     // 序列化主要用于 持久化对象 和 远程方法调用 (RMI) 等场景
@@ -20,7 +20,4 @@ public class UserRegisterRequest implements Serializable {
 
     private String userPassword;
 
-    private String checkPassword;
-
-    private String planetCode;
 }
