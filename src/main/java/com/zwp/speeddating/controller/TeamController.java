@@ -1,11 +1,13 @@
 package com.zwp.speeddating.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zwp.speeddating.common.BaseResponse;
 import com.zwp.speeddating.common.ErrorCode;
 import com.zwp.speeddating.common.ResultUtils;
 import com.zwp.speeddating.exception.BusinessException;
 import com.zwp.speeddating.model.domain.Team;
 import com.zwp.speeddating.model.domain.User;
+import com.zwp.speeddating.model.domain.UserTeam;
 import com.zwp.speeddating.model.dto.TeamQuery;
 import com.zwp.speeddating.model.request.TeamAddRequest;
 import com.zwp.speeddating.model.request.TeamJoinRequest;
@@ -14,6 +16,7 @@ import com.zwp.speeddating.model.request.TeamUpdateRequest;
 import com.zwp.speeddating.model.vo.TeamUserVO;
 import com.zwp.speeddating.service.TeamService;
 import com.zwp.speeddating.service.UserService;
+import com.zwp.speeddating.service.UserTeamService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 队伍接口
@@ -38,6 +42,9 @@ public class TeamController {
 
     @Autowired
     private TeamService teamService;
+
+    @Autowired
+    private UserTeamService userTeamService;
 
     @PostMapping("/add")
     public BaseResponse<Long> addTeam(@RequestBody TeamAddRequest teamAddRequest, HttpServletRequest request) {
@@ -105,5 +112,47 @@ public class TeamController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "删除失败");
         }
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 获取自己创建的队伍
+     * @param teamQuery
+     * @param request
+     * @return
+     */
+    @GetMapping("/list/my/create")
+    public BaseResponse<List<TeamUserVO>> listMyCreateTeams(TeamQuery teamQuery, HttpServletRequest request) {
+        if (teamQuery == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        teamQuery.setUserId(loginUser.getId());
+        List<TeamUserVO> teamList = teamService.listTeams(teamQuery, true);
+        return ResultUtils.success(teamList);
+    }
+
+    /**
+     * 获取自己加入的队伍
+     * @param teamQuery
+     * @param request
+     * @return
+     */
+    @GetMapping("/list/my/join")
+    public BaseResponse<List<TeamUserVO>> listMyJoinTeams(TeamQuery teamQuery, HttpServletRequest request) {
+        if (teamQuery == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        QueryWrapper<UserTeam> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userId", loginUser.getId());
+        List<UserTeam> userTeamList = userTeamService.list(queryWrapper);
+        // 取出不重复的队伍id(分组查询)
+        List<Long> idList = userTeamList.stream()
+                .map(UserTeam::getTeamId)
+                .distinct()
+                .collect(Collectors.toList());
+        teamQuery.setIdList(idList);
+        List<TeamUserVO> teamList = teamService.listTeams(teamQuery, true);
+        return ResultUtils.success(teamList);
     }
 }
