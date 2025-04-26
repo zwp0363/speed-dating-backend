@@ -9,6 +9,8 @@ import com.zwp.speeddating.exception.BusinessException;
 import com.zwp.speeddating.model.domain.User;
 import com.zwp.speeddating.service.UserService;
 import com.zwp.speeddating.mapper.UserMapper;
+import com.zwp.speeddating.utils.AlgorithmUtils;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +19,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -223,7 +223,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                     // 将标签字符串解析为Set集合
                     // new TypeToken<Set<String>>() {}.getType(): 这是一个匿名内部类和 TypeToken 的用法，用于在运行时获取泛型类型 Set<String> 的 Type 对象。
                     // 由于 Java 的类型擦除，直接使用 Set<String>.class 是无法获取到泛型信息的，TypeToken 可以解决这个问题，让 Gson 正确地反序列化为 Set<String> 类型
-                    Set<String> tempTagNameSet = gson.fromJson(tagStr, new TypeToken<Set<String>>() {}.getType());
+                    Set<String> tempTagNameSet = gson.fromJson(tagStr, new TypeToken<Set<String>>() {
+                    }.getType());
                     // 如果 tempTagNameSet 是 null，就把它初始化为一个新的空的 HashSet，否则保持原样,等价if-null
                     tempTagNameSet = Optional.ofNullable(tempTagNameSet).orElse(new HashSet<>());
                     for (String tagName : tagNameList) { // 遍历给定的标签名称列表
@@ -263,13 +264,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         if (userObj == null) {
-            throw  new BusinessException(ErrorCode.NO_AUTH);
+            throw new BusinessException(ErrorCode.NO_AUTH);
         }
         return (User) userObj;
     }
 
     /**
      * 是否为管理员
+     *
      * @param request
      * @return
      */
@@ -277,21 +279,75 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 仅管理员可删除
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User user = (User) userObj;
-        return  user != null && user.getUserRole() == ADMIN_ROLE;
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
     /**
      * 是否为管理员
+     *
      * @param loginUser
      * @return
      */
     @Override
     public boolean isAdmin(User loginUser) {
-        return  loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
+        return loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
+    }
+
+    @Override
+    public List<User> matchUsers(long num, User loginUser) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("id", "tags"); // 只查询需要的数据
+        queryWrapper.isNotNull("tags"); // 查询标签不为空的数据
+        List<User> userList = this.list(queryWrapper); // 这里的userList只包含两个字段,其余为null
+        String tags = loginUser.getTags();
+        Gson gson = new Gson();
+        // 将登录用户的标签 JSON 字符串转换为 List<String>
+        List<String> tagList = gson.fromJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+        // 创建一个 List 存储用户和相似度 Pair 对象
+        List<Pair<User, Long>> list = new ArrayList<>();
+        for (User user : userList) {
+            String userTags = user.getTags();
+            // 无标签，排除本人
+            if (StringUtils.isBlank(userTags) || user.getId() == loginUser.getId()) {
+                continue;
+            }
+            List<String> userTagList = gson.fromJson(userTags, new TypeToken<List<String>>() {
+            }.getType());
+            // 计算登录用户标签和当前用户标签的距离（相似度），距离越小表示越相似
+            long distance = AlgorithmUtils.minDistance(tagList, userTagList);
+            list.add(new Pair<>(user, distance));
+        }
+        // 按编辑距离由小到大排序
+        // 在比较两个 Pair 对象时，返回的是 a 的距离值减去 b 的距离值，并且根据 Comparator 的规则，
+        // 负数表示 a 应该排在前面，正数表示 a 应该排在后面，因此，这种比较逻辑实现了按照 distance 值 (即 Pair::getValue) 的升序排序 (从小到大排序)。
+        List<Pair<User, Long>> topUserPairList = list.stream()
+                .sorted((a, b) -> (int) (a.getValue() - b.getValue()))
+                .limit(num)
+                .collect(Collectors.toList());
+        // 从排序后的 Pair 列表中提取出 User 的 id 列表
+        List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).collect(Collectors.toList());
+        QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+        userQueryWrapper.eq("id", userIdList);
+        // 执行第二次数据库查询，这次查询没有指定 select 字段，默认查询 User 所有字段
+        Map<Long, User> userIdUserMap = this.list(userQueryWrapper)
+                .stream()
+                .map(this::getSafetyUser) // 脱敏，使用方法引用，更简洁
+                .collect(Collectors.toMap(User::getId, Function.identity()));// 转换为 Map<UserId, User>
+        // Collectors.toMap(User::getId, Function.identity()) 将 this.list(userQueryWrapper) 返回的 List<User> 转换为一个 Map<Long, User>，
+        // 其中键是用户 ID，值是对应的 User 对象。 由于用户 ID 是唯一的，toMap 会为每个用户 ID 创建一个唯一的键值对。
+        List<User> finalUserList = new ArrayList<>();
+        // 按照 userIdList 的顺序，从 userIdUserMap 中取出 User 对象，并添加到 finalUserList
+        for (Long userId : userIdList) {
+            // 直接从 Map 中根据 userId 取 User 对象
+            finalUserList.add(userIdUserMap.get(userId));
+        }
+        return finalUserList;
     }
 
     /**
      * 根据标签搜索用户（SQL 查询版）
+     *
      * @param tagNameList 用户拥有的标签
      * @return 用户集合
      */
