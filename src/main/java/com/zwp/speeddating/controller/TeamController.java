@@ -23,7 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -64,9 +66,10 @@ public class TeamController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         boolean isAdmin = userService.isAdmin(request);
+        // 1.查询队伍列表
         List<TeamUserVO> teamList = teamService.listTeams(teamQuery, isAdmin);
-        // 判断当前用户是否已加入队伍
-        List<Long> teamIdList = teamList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
+        final List<Long> teamIdList = teamList.stream().map(TeamUserVO::getId).collect(Collectors.toList());
+        // 2.判断当前用户是否已加入队伍
         QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
         try {
             User loginUser = userService.getLoginUser(request);
@@ -79,9 +82,17 @@ public class TeamController {
                 boolean hasJoin = hasJoinTeamList.contains(team.getId());
                 team.setHasJoin(hasJoin); // 更新已加入字段
             });
-        } catch (Exception e) {
-
-        }
+        } catch (Exception e) {}
+        // 3.查询已加入队伍的用户信息
+        QueryWrapper<UserTeam> userTeamJoinQueryWrapper = new QueryWrapper<>();
+        userTeamJoinQueryWrapper.in("teamId", teamIdList);
+        List<UserTeam> userTeamList = userTeamService.list(userTeamJoinQueryWrapper);
+        // 队伍id => 加入这个队伍的用户列表（分组查询）
+        Map<Long, List<UserTeam>> teamIdUserTeamMap = userTeamList.stream().collect(Collectors.groupingBy(UserTeam::getTeamId));
+        teamList.forEach(team -> {
+            // 分组查询直接通过 teamIdUserTeamMap.get(team.getId()).size() 快速获取每个队伍的加入人数
+            team.setHasJoinNum(teamIdUserTeamMap.getOrDefault(team.getId(), new ArrayList<>()).size());
+        });
         return ResultUtils.success(teamList);
     }
 
