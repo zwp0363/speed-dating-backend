@@ -328,7 +328,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 从排序后的 Pair 列表中提取出 User 的 id 列表
         List<Long> userIdList = topUserPairList.stream().map(pair -> pair.getKey().getId()).collect(Collectors.toList());
         QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
-        userQueryWrapper.eq("id", userIdList);
+        userQueryWrapper.in("id", userIdList);
         // 执行第二次数据库查询，这次查询没有指定 select 字段，默认查询 User 所有字段
         Map<Long, User> userIdUserMap = this.list(userQueryWrapper)
                 .stream()

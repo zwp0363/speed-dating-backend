@@ -95,12 +95,12 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
         if (new Date().after(expireTime)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "超时时间 > 当前时间");
         }
-        //   7.校验用户最多创建5个队伍
-        QueryWrapper<Team> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("userId", userId);
-        long hasTeamNum = this.count(queryWrapper);
-        if (hasTeamNum >= 5) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户最多创建5个队伍");
+        //   7.校验用户最多创建和加入5个队伍
+        QueryWrapper<UserTeam> userTeamQueryWrapper = new QueryWrapper<>();
+        userTeamQueryWrapper.eq("userId", userId);
+        long hasJoinNum = userTeamService.count(userTeamQueryWrapper);
+        if (hasJoinNum > 5) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "最多创建和加入5个队伍");
         }
         // 3.插入数据
         //   1.插入队伍信息到队伍表
@@ -148,13 +148,12 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
             // 根据状态查询
             Integer status = teamQuery.getStatus();
             TeamStatusEnum statusEnum = TeamStatusEnum.getEnumByValue(status);
-            if (statusEnum == null) {
-                statusEnum = TeamStatusEnum.PUBLIC;
-            }
             if (!isAdmin && statusEnum.equals(TeamStatusEnum.PRIVATE)) {
                 throw new BusinessException(ErrorCode.NO_AUTH);
             }
-            queryWrapper.eq("status", statusEnum.getValue());
+            if (statusEnum != null) {
+                queryWrapper.eq("status", statusEnum.getValue());
+            }
             // 查询最大人数相等的
             Integer maxNum = teamQuery.getMaxNum();
             if (maxNum != null && maxNum > 0) {
@@ -301,6 +300,7 @@ public class TeamServiceImpl extends ServiceImpl<TeamMapper, Team>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean quitTeam(TeamQuitRequest teamQuitRequest, User loginUser) {
         if (teamQuitRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
